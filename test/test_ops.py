@@ -1519,11 +1519,48 @@ class TestRefsOpsInfo(TestCase):
         '_refs.zeros_like'
     }
 
+    not_in_decomp_table = {
+        # duplicated in _decomp and _refs
+        '_refs.nn.functional.elu',
+        '_refs.masked_fill',
+        '_refs.transpose',
+        '_refs.var',
+        # these are not aten ops?
+        '_refs.broadcast_shapes',
+        '_refs.broadcast_tensors',
+        '_refs.nn.functional.tanhshrink',
+        '_refs.swap_axes',
+        # CompositeImplicitAutograd
+        '_refs.isfinite',
+        '_refs.square',
+        '_refs.true_divide',
+        '_refs.trunc_divide',
+        # missing kwargs
+        '_refs.empty_like',
+        # not sure
+        '_refs.copy_to',
+        '_refs.clone',
+    }
+
     @parametrize("op", ref_ops_names)
     def test_refs_are_in_python_ref_db(self, op):
         if op in self.skip_ref_ops:
             raise unittest.SkipTest(f"{op} does not have an entry in python_ref_db")
         self.assertIn(op, self.ref_db_names)
+
+    @parametrize("op", ref_ops_names)
+    def test_refs_are_in_decomp_table(self, op):
+        path = op.split('.')
+        module_path = '.'.join(path[:-1])
+        op_name = path[-1]
+        op_impl = getattr(import_module(f"torch.{module_path}"), op_name)
+
+        if op in self.not_in_decomp_table:
+            self.assertFalse(op_impl in torch._decomp.decomposition_table.values(),
+                             f"Unexpectedly found {op} in torch._decomp.decomposition_table.values()")
+        else:
+            self.assertTrue(op_impl in torch._decomp.decomposition_table.values(),
+                            f"Did not find {op} in torch._decomp.decomposition_table.values()")
 
 
 fake_skips = (

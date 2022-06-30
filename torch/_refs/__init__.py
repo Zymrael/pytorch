@@ -448,6 +448,7 @@ def exp2(a):
 
 
 # Fill has its own implementation because it has a value parameter
+@register_decomposition(torch.ops.aten.fill)
 @out_wrapper
 @elementwise_type_promotion_wrapper(
     type_promoting_args=("a,"),
@@ -625,6 +626,7 @@ def neg(a):
 
 
 # positive does not use _make_elementwise_unary_reference because it does not support out
+@register_decomposition(torch.ops.aten.positive)
 def positive(a: TensorLikeType) -> TensorLikeType:
     assert isinstance(a, TensorLike)
     if a.dtype is torch.bool:
@@ -639,6 +641,7 @@ def reciprocal(a):
 
 
 # TODO: round takes additional kwargs
+@register_decomposition(torch.ops.aten.round)
 @_make_elementwise_unary_reference(
     ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT,
     aten_op=None,  # TODO: this does need a decomp, but kwarg handling is needed
@@ -893,6 +896,7 @@ eq = _make_elementwise_binary_reference(
 # TODO: add docstring
 # Float power has its own implementation because it has unique type promotion.
 # NB: aten_op not registered because CompositeExplicitAutograd
+@register_decomposition(torch.ops.aten.float_power)
 @out_wrapper
 def float_power(
     a: Union[TensorLikeType, NumberType],
@@ -1060,6 +1064,7 @@ igammac = _make_elementwise_binary_reference(
 )
 
 
+@register_decomposition(torch.ops.aten.isclose)
 def isclose(
     a: TensorLikeType,
     b: TensorLikeType,
@@ -1319,6 +1324,7 @@ trunc_divide = _make_elementwise_binary_reference(
 #
 
 
+@register_decomposition(torch.ops.aten.clamp)
 @out_wrapper
 @elementwise_type_promotion_wrapper(
     type_promoting_args=("a", "min", "max"),
@@ -1426,6 +1432,7 @@ def copy_to(a: Tensor, b: Tensor, *, allow_cross_device=True):
     return prims.copy_to(a, b)
 
 
+@register_decomposition(torch.ops.aten.item)
 def item(a: TensorLikeType) -> NumberType:
     if a.numel() != 1:
         msg = f"Can't convert a tensor with {a.numel()} elements to a number!"
@@ -1511,6 +1518,7 @@ def _reduction(
 py_all = all
 
 
+@register_decomposition(torch.ops.aten.all)
 @out_wrapper
 def all(
     a: TensorLikeType,
@@ -1533,6 +1541,7 @@ def all(
     return result
 
 
+@register_decomposition(torch.ops.aten.any)
 @out_wrapper
 def any(
     a: TensorLikeType,
@@ -1605,6 +1614,7 @@ def prod(
     )
 
 
+@register_decomposition(torch.ops.aten.amin)
 def amin(
     a: TensorLikeType,
     dim: Union[Optional[int], Optional[List[int]]] = None,
@@ -1628,6 +1638,7 @@ def amin(
     )
 
 
+@register_decomposition(torch.ops.aten.amax)
 def amax(
     a: TensorLikeType,
     dim: Optional[DimsType] = None,
@@ -1727,6 +1738,7 @@ def std(
     return _maybe_convert_to_dtype(result, dtype)  # type: ignore[return-value,arg-type]
 
 
+@register_decomposition(torch.ops.aten.mean)
 def mean(
     a: TensorLikeType,
     dim: Optional[DimsType] = None,
@@ -1782,6 +1794,7 @@ def std_mean(
     return s, m
 
 
+@register_decomposition(torch.ops.aten.var_mean)
 def var_mean(
     a: TensorLikeType,
     dim: Optional[DimsType] = None,
@@ -1850,6 +1863,7 @@ def addr(
             return beta * self + alpha * torch.outer(vec1, vec2)
 
 
+@register_decomposition(torch.ops.aten.atleast_1d)
 def atleast_1d(
     arg: Union[TensorLikeType, Sequence[TensorLikeType]], *args: TensorLikeType
 ) -> Union[TensorLikeType, Tuple[TensorLikeType, ...]]:
@@ -1873,6 +1887,7 @@ def _unsqueeze_atleast(
     return unsqueeze(arg_, dim)
 
 
+@register_decomposition(torch.ops.aten.atleast_2d)
 def atleast_2d(
     arg: Union[TensorLikeType, Sequence[TensorLikeType]], *args: TensorLikeType
 ) -> Union[TensorLikeType, Tuple[TensorLikeType, ...]]:
@@ -1887,6 +1902,7 @@ def atleast_2d(
     return res if len(res) > 1 else res[0]
 
 
+@register_decomposition(torch.ops.aten.atleast_3d)
 def atleast_3d(
     arg: Union[TensorLikeType, Sequence[TensorLikeType]], *args: TensorLikeType
 ) -> Union[TensorLikeType, Tuple[TensorLikeType, ...]]:
@@ -1901,6 +1917,7 @@ def atleast_3d(
     return res if len(res) > 1 else res[0]
 
 
+@register_decomposition(torch.ops.aten.as_strided)
 def as_strided(
     a: TensorLikeType, size: ShapeType, stride: StrideType, storage_offset: int = 0
 ) -> TensorLikeType:
@@ -1915,6 +1932,7 @@ def broadcast_tensors(*tensors) -> List[TensorLikeType]:
     return list(_maybe_broadcast(*tensors, preserve_cpu_scalar_tensors=False))
 
 
+@register_decomposition(torch.ops.aten.broadcast_to)
 def broadcast_to(a: TensorLikeType, size: ShapeType) -> TensorLikeType:
     start = len(size) - len(a.shape)
     dims = tuple(range(start, len(a.shape) + start))
@@ -1956,6 +1974,7 @@ def cat(tensors: TensorSequenceType, dim: int = 0) -> TensorLikeType:
     return prims.cat(filtered, dim)
 
 
+@register_decomposition(torch.ops.aten.column_stack)
 @out_wrapper
 def column_stack(tensors: TensorSequenceType) -> TensorLikeType:
     aligned_tensors = tuple(
@@ -1965,6 +1984,7 @@ def column_stack(tensors: TensorSequenceType) -> TensorLikeType:
     return cat(aligned_tensors, 1)
 
 
+@register_decomposition(torch.ops.aten.dstack)
 @out_wrapper
 def dstack(tensors: TensorSequenceType) -> TensorLikeType:
     check(len(tensors) > 0, lambda: "dstack expects a non-empty TensorList")
@@ -1972,6 +1992,7 @@ def dstack(tensors: TensorSequenceType) -> TensorLikeType:
     return cat(aligned_tensors, 2)
 
 
+@register_decomposition(torch.ops.aten.chunk)
 def chunk(a: TensorLikeType, chunks: int, dim: int = 0) -> Tuple[TensorLikeType, ...]:
     if chunks <= 0:
         msg = "Expected at least one chunk, but got {0}!".format(chunks)
@@ -1996,6 +2017,7 @@ def chunk(a: TensorLikeType, chunks: int, dim: int = 0) -> Tuple[TensorLikeType,
 # Note: flatten, unlike prim.collapse and prim.collapse_view has an inclusive end_dim
 # Note: flatten, unlike other shape operators, returns the input tensor on a no-op (unless
 # a 0D tensor is flattened, in which case it's returned in 1D)
+@register_decomposition(torch.ops.aten.flatten)
 def flatten(a: TensorLikeType, start_dim: int = 0, end_dim: int = -1) -> TensorLikeType:
     start_dim = utils.canonicalize_dim(a.ndim, start_dim)
     end_dim = utils.canonicalize_dim(a.ndim, end_dim)
@@ -2023,6 +2045,7 @@ def flip(a: TensorLikeType, dims: DimsSequenceType) -> TensorLikeType:
     return prims.rev(a, dims)
 
 
+@register_decomposition(torch.ops.aten.fliplr)
 def fliplr(a: TensorLikeType) -> TensorLikeType:
     if a.ndim < 2:
         raise RuntimeError("Input must be >= 2-d.")
@@ -2030,6 +2053,7 @@ def fliplr(a: TensorLikeType) -> TensorLikeType:
     return flip(a, (1,))
 
 
+@register_decomposition(torch.ops.aten.flipud)
 def flipud(a: TensorLikeType) -> TensorLikeType:
     if a.ndim < 1:
         raise RuntimeError("Input must be >= 1-d.")
@@ -2037,6 +2061,7 @@ def flipud(a: TensorLikeType) -> TensorLikeType:
     return flip(a, (0,))
 
 
+@register_decomposition(torch.ops.aten.narrow)
 def narrow(a: TensorLikeType, dim: int, start: int, length: int) -> TensorLikeType:
     dim = utils.canonicalize_dim(a.ndim, dim)
     return prims.slice_in_dim(a, start, start + length, axis=dim)
@@ -2277,6 +2302,7 @@ def _reshape_view_helper(
 
 
 # TODO: Turn this into a decomposition (currently fails on reshape meta tests)
+@register_decomposition(torch.ops.aten.reshape)
 def reshape(a: TensorLikeType, shape: ShapeType) -> TensorLikeType:
     return _reshape_view_helper(a, shape, allow_copy=True)
 
@@ -2401,6 +2427,7 @@ def softmax(
     )  # type: ignore[return-value]
 
 
+@register_decomposition(torch.ops.aten.hstack)
 @out_wrapper
 def hstack(tensors: TensorSequenceType) -> TensorLikeType:
     check(len(tensors) > 0, lambda: "hstack expects a non-empty TensorList")
@@ -2410,6 +2437,7 @@ def hstack(tensors: TensorSequenceType) -> TensorLikeType:
     return cat(aligned_tensors, 1)
 
 
+@register_decomposition(torch.ops.aten.vstack)
 @out_wrapper
 def vstack(tensors: TensorSequenceType) -> TensorLikeType:
     check(len(tensors) > 0, lambda: "vstack expects a non-empty TensorList")
@@ -2418,6 +2446,7 @@ def vstack(tensors: TensorSequenceType) -> TensorLikeType:
 
 
 # Note: although squeeze is documented as having the out= kwarg it doesn't
+@register_decomposition(torch.ops.aten.squeeze)
 def squeeze(a: TensorLikeType, dim: Optional[int] = None) -> TensorLikeType:
     if dim is not None:
         dim = utils.canonicalize_dim(a.ndim, dim)
@@ -2436,6 +2465,7 @@ def squeeze(a: TensorLikeType, dim: Optional[int] = None) -> TensorLikeType:
 
 
 # Note: does not work with TensorMetas because of data-dependent control-flow
+@register_decomposition(torch.ops.aten.tensor_split)
 def tensor_split(
     a: TensorLikeType,
     indices_or_sections: Union[Tensor, DimsType],
@@ -2512,6 +2542,7 @@ def tensor_split(
         return tuple(splits)
 
 
+@register_decomposition(torch.ops.aten.hsplit)
 def hsplit(
     a: TensorLikeType, indices_or_sections: DimsType
 ) -> Tuple[TensorLikeType, ...]:
@@ -2554,6 +2585,7 @@ def hsplit(
     return tensor_split(a, split_sizes, dim)
 
 
+@register_decomposition(torch.ops.aten.vsplit)
 def vsplit(
     a: TensorLikeType, indices_or_sections: DimsType
 ) -> Tuple[TensorLikeType, ...]:
@@ -2594,6 +2626,7 @@ def vsplit(
     return tensor_split(a, split_sizes, 0)
 
 
+@register_decomposition(torch.ops.aten.dsplit)
 def dsplit(a: TensorLikeType, sections: DimsType) -> TensorSequenceType:
     if a.ndim < 3:
         raise RuntimeError(
@@ -2650,14 +2683,17 @@ def unsqueeze(a: TensorLikeType, dim: int) -> TensorLikeType:
 
 
 # TODO: Turn this into a decomposition (currently fails on reshape meta tests)
+@register_decomposition(torch.ops.aten.view)
 def view(a: TensorLikeType, shape: ShapeType) -> TensorLikeType:
     return _reshape_view_helper(a, shape, allow_copy=False)
 
 
+@register_decomposition(torch.ops.aten.ravel)
 def ravel(a: TensorLikeType) -> TensorLikeType:
     return reshape(a, (-1,))
 
 
+@register_decomposition(torch.ops.aten.empty)
 @out_wrapper
 def empty(
     *shape,
@@ -2672,6 +2708,7 @@ def empty(
     )
 
 
+# TODO: missing kwargs (e.g. layout)
 def empty_like(
     a: TensorLikeType,
     *,
@@ -2695,6 +2732,7 @@ def empty_like(
 
 
 # NOTE: for convenience, shape can be a tuple of ints or a tuple containing a tuple of ints
+@register_decomposition(torch.ops.aten.empty_strided)
 def empty_strided(
     shape: Union[ShapeType, Tuple[ShapeType]],
     strides: StrideType,
@@ -2713,6 +2751,7 @@ def empty_strided(
     )
 
 
+@register_decomposition(torch.ops.aten.full)
 @out_wrapper
 def full(
     shape: ShapeType,
@@ -2726,6 +2765,7 @@ def full(
     return fill(e, fill_value)
 
 
+@register_decomposition(torch.ops.aten.full_like)
 def full_like(
     a: TensorLikeType,
     fill_value: NumberType,
@@ -2739,10 +2779,13 @@ def full_like(
 
 
 ones = partial(full, fill_value=True)
+register_decomposition(torch.ops.aten.ones)(ones)
 
 ones_like = partial(full_like, fill_value=True)
+register_decomposition(torch.ops.aten.ones_like)(ones_like)
 
 
+@register_decomposition(torch.ops.aten.scalar_tensor)
 def scalar_tensor(
     a: NumberType,
     *,
@@ -2755,10 +2798,13 @@ def scalar_tensor(
 
 
 zeros = partial(full, fill_value=False)
+register_decomposition(torch.ops.aten.zeros)(zeros)
 
 zeros_like = partial(full_like, fill_value=False)
+register_decomposition(torch.ops.aten.zeros_like)(zeros_like)
 
 
+@register_decomposition(torch.ops.aten.uniform)
 def uniform(
     shape: ShapeType,
     low: Union[bool, int, float] = 0.0,
@@ -2814,6 +2860,7 @@ def masked_fill(a: TensorLikeType, mask: TensorLikeType, value: TensorOrNumberLi
 
 
 # TODO: add OpInfo for torch.equal and refs.equal
+@register_decomposition(torch.ops.aten.equal)
 def equal(a: TensorLikeType, b: TensorLikeType) -> bool:
     utils.check_same_device(a, b, allow_cpu_scalar_tensors=False)
     utils.check_same_dtype(a, b)
